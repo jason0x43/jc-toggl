@@ -81,7 +81,9 @@ Credits
 -------
 
 The workflow was my idea, but it would of course be pretty useless without the
-awesome service that is [Toggl][toggl].
+awesome service that is [Toggl][toggl]. It also wouldn't look as snazzy (well,
+as snazzy as an Alfred workflow can) without the icon from Toggl's desktop
+application. 
 
 [pkg]: https://dl.dropboxusercontent.com/s/ff7hsrn1og72xey/jc-toggl.alfredworkflow
 [alfred]: http://www.alfredapp.com
