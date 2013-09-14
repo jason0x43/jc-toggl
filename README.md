@@ -44,14 +44,13 @@ API key. You can find it in your account settings on toggle.com.
 Notifier
 --------
 
-This packaged version of this workflow also includes a menu bar notifier
-component that I wrote. (I haven't gotten around to posting the source yet, but
-soon...) Alfred is great for interacting with Toggl, but I kept forgetting to
-stop my timers. The notifier sits in the menu bar and checks Toggl every 3
-minutes to see if you have an active timer. If you do, it turns red; otherwise
-it's black. The notifier also responds to notifications from the workflow, so
-if you start or stop a timer via the workflow the timer will change colors
-immediately.
+This packaged version of this workflow also includes a [menu bar notifier
+app][notifier] that I wrote. Alfred is great for interacting with Toggl, but I
+kept forgetting to stop my timers. The notifier sits in the menu bar and checks
+Toggl every 3 minutes to see if you have an active timer. If you do, it turns
+red; otherwise it's black. The notifier also responds to notifications from the
+workflow, so if you start or stop a timer via the workflow the timer will
+change colors immediately.
 
 <p align="center">
 <img alt="Screenshot" src="https://dl.dropboxusercontent.com/s/sv3loafccs3iyoc/jc-toggl_notifier_screenshot.png" />
@@ -89,3 +88,4 @@ application.
 [alfred]: http://www.alfredapp.com
 [toggl]: http://www.toggl.com
 [jcalfred]: https://github.com/jason0x43/jcalfred
+[notifier]: https://github.com/jason0x43/jc-toggl-notifier
