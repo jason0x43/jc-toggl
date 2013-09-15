@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from jcalfred import Workflow, Item, JsonFile, LINE
+from jcalfred import Workflow, Item, JsonFile
 from tzlocal import get_localzone
 import datetime
 import toggl
@@ -12,6 +12,26 @@ LOG = logging.getLogger(__name__)
 CACHE_LIFETIME = 300
 LOCALTZ = get_localzone()
 DATE_FORMAT = '%m/%d'
+CONFIG_HEADER = '''
+This file may only contain valid JSON syntax (aside from this header
+comment, which is stripped when the file is read).
+
+The config file understands the following keys:
+
+    api_key : string
+        This is your Toggl API key.
+
+    use_notifier : boolean
+        Set to true to enable the menu bar notifier.
+
+    log_level: string
+        This sets how detailed the messages in the workflow's debug
+        log will be. It will accept values "DEBUG", "INFO", "WARNING",
+        "ERROR", or "CRITICAL". It's value is "INFO" by default.
+
+Note that any changes to comments (including adding new ones) will be
+ignored.
+'''
 
 
 COMMANDS = {
@@ -20,20 +40,35 @@ COMMANDS = {
 }
 
 
-def to_hours(delta, quantized=True):
+def to_hours_str(delta, quantized=True, precision=2, show_suffix=True):
+    '''Convert a timedelta or number of seconds to an hour string.'''
     if isinstance(delta, datetime.timedelta):
         hours = delta.days * 24
         hours += delta.seconds / (60 * 60.0)
     else:
         hours = delta / (60*60.0)
 
+    suffix = ''
+
     if quantized:
         # round to nearest quarter hour
+        exact_hours = hours
         hours = round(hours * 4) / 4
         if hours == 0:
             hours = 0.25
+        if show_suffix:
+            if exact_hours < hours:
+                suffix = '-'
+            elif exact_hours > hours:
+                suffix = '+'
 
-    return hours
+    hours_format = '{{0:.0{0}f}}'.format(precision)
+    hours_str = hours_format.format(hours)
+    if precision > 0:
+        hours_str = hours_str.rstrip('0').rstrip('.')
+    hours_str += suffix
+
+    return hours_str
 
 
 def to_approximate_time(delta, ago=False):
@@ -132,11 +167,51 @@ def get_end(query):
     return LOCALTZ.localize(end)
 
 
+class Effort(object):
+    def __init__(self, description, start_time=None, end_time=None):
+        self.description = description
+        self.time_entries = []
+        self.seconds = 0
+        self.start_time = start_time
+        self.end_time = end_time
+
+    def add(self, time_entry):
+        if time_entry.description != self.description:
+            raise Exception('Entry description does not match this effort')
+        self.time_entries.append(time_entry)
+
+        if time_entry.duration >= 0:
+            duration = time_entry.duration
+            if self.start_time and time_entry.start_time < self.start_time:
+                duration -= (self.start_time -
+                             time_entry.start_time).total_seconds()
+            if self.end_time and time_entry.stop_time >= self.end_time:
+                sec = datetime.timedelta(seconds=1)
+                duration -= (time_entry.stop_time - self.end_time -
+                             sec).total_seconds()
+            self.seconds += int(duration)
+
+    @property
+    def newest_entry(self):
+        return sorted(self.time_entries, key=lambda e: e.start_time)[-1]
+
+    @property
+    def oldest_entry(self):
+        return sorted(self.time_entries, key=lambda e: e.start_time)[0]
+
+    @property
+    def is_running(self):
+        return self.newest_entry.is_running
+
+
 class TogglWorkflow(Workflow):
     def __init__(self, *args, **kw):
         super(TogglWorkflow, self).__init__(*args, **kw)
         self.cache = JsonFile(os.path.join(self.cache_dir, 'cache.json'),
                               ignore_errors=True)
+
+        self.config.header = CONFIG_HEADER.strip()
+
         if 'use_notifier' not in self.config:
             self.config['use_notifier'] = False
 
@@ -161,7 +236,7 @@ class TogglWorkflow(Workflow):
         '''List entries that match a query.
 
         Note that an end time without a start time will be ignored.'''
-        LOG.info('telling query with "{0}", start={1}, end={2}'.format(
+        LOG.info('tell_query("{0}", start={1}, end={2})'.format(
                  query, start, end))
         if not start:
             end = None
@@ -169,25 +244,23 @@ class TogglWorkflow(Workflow):
         needs_refresh = False
         query = query.strip()
 
-        if len(query) > 0 and query[0] == '/':
-            LOG.info('manual refresh')
-            query = query[1:]
+        if self.cache.get('disable_cache', False):
+            LOG.debug('cache is disabled')
             needs_refresh = True
-        else:
+        elif self.cache.get('time') and self.cache.get('time_entries'):
             last_load_time = self.cache.get('time')
-            if last_load_time:
-                LOG.info('last load was %s', last_load_time)
-                import time
-                now = int(time.time())
-                if now - last_load_time > CACHE_LIFETIME:
-                    LOG.info('automatic refresh')
-                    needs_refresh = True
-            else:
-                LOG.info('last load was null')
+            LOG.debug('last load was %s', last_load_time)
+            import time
+            now = int(time.time())
+            if now - last_load_time > CACHE_LIFETIME:
+                LOG.debug('automatic refresh')
                 needs_refresh = True
+        else:
+            LOG.debug('cache is missing timestamp or data')
+            needs_refresh = True
 
         if needs_refresh:
-            LOG.info('getting data...')
+            LOG.debug('refreshing cache')
 
             try:
                 all_entries = toggl.TimeEntry.all()
@@ -199,102 +272,96 @@ class TogglWorkflow(Workflow):
             self.cache['time'] = int(time.time())
             self.cache['time_entries'] = serialize_entries(all_entries)
         else:
+            LOG.debug('using cached data')
             all_entries = deserialize_entries(self.cache['time_entries'])
 
+        LOG.debug('%d entries', len(all_entries))
+
         if start:
+            LOG.debug('filtering on start time %s', start)
             if end:
+                LOG.debug('filtering on end time %s', end)
                 all_entries = [e for e in all_entries if e.start_time < end
                                and e.stop_time > start]
             else:
                 all_entries = [e for e in all_entries if e.stop_time > start]
+            LOG.debug('filtered to %d entries', len(all_entries))
 
-        entries = {}
+        efforts = {}
 
+        # group entries with the same description into efforts (so as not to be
+        # confused with Toggl tasks
         for entry in all_entries:
-            if entry.description not in entries:
-                entries[entry.description] = {'entries': [],
-                                              'seconds': 0}
-            entries[entry.description]['entries'].append(entry)
-            if entry.duration >= 0:
-                duration = entry.duration
-                if start and entry.start_time < start:
-                    duration -= (start - entry.start_time).total_seconds()
-                if end and entry.stop_time >= end:
-                    duration -= (entry.stop_time - end - 1).total_seconds()
-                entries[entry.description]['seconds'] += duration
+            if entry.description not in efforts:
+                efforts[entry.description] = Effort(entry.description, start,
+                                                    end)
+            efforts[entry.description].add(entry)
 
-        latest_entries = []
-
-        for desc in entries:
-            subentries = entries[desc]['entries']
-
-            subentries = sorted(subentries, key=lambda e: e.start_time)
-            entries[desc]['latest'] = subentries[-1]
-            entries[desc]['first'] = subentries[0]
-            latest_entries.append(subentries[-1])
-
-        latest_entries = sorted(latest_entries, reverse=True,
-                                key=lambda e: e.start_time)
+        efforts = efforts.values()
+        efforts = sorted(efforts, reverse=True,
+                         key=lambda e: e.newest_entry.start_time)
 
         items = []
 
         if start:
-            if len(latest_entries) > 0:
-                total_time = sum(entries[e.description]['seconds'] for e in
-                                 latest_entries)
-                total_time = to_hours(total_time)
+            if len(efforts) > 0:
+                seconds = sum(e.seconds for e in efforts)
+                LOG.debug('total seconds: %s', seconds)
+                total_time = to_hours_str(seconds, show_suffix=False)
 
                 if end:
                     item = Item('{0} hours on {1}'.format(
                                 total_time,
                                 start.date().strftime(DATE_FORMAT)),
-                                subtitle=LINE)
+                                subtitle=Item.LINE)
                 else:
-                    item = Item('{0} hours since {1}'.format(
+                    item = Item('{0} hours from {1}'.format(
                                 total_time,
                                 start.date().strftime(DATE_FORMAT)),
-                                subtitle=LINE)
+                                subtitle=Item.LINE)
             else:
                 item = Item('Nothing to report')
 
             items.append(item)
 
-        for entry in latest_entries:
-            item = Item(entry.description, valid=True)
+        for effort in efforts:
+            item = Item(effort.description, valid=True)
             now = LOCALTZ.localize(datetime.datetime.now())
 
-            if entry.is_running:
+            newest_entry = effort.newest_entry
+            if newest_entry.is_running:
                 item.icon = 'running.png'
-                started = entry.start_time
+                started = newest_entry.start_time
                 delta = to_approximate_time(now - started)
 
-                seconds = entries[entry.description]['seconds']
+                seconds = effort.seconds
                 total = ''
                 if seconds > 0:
-                    hours = to_hours(seconds)
+                    hours = to_hours_str(seconds)
                     total = ' ({0} hours total)'.format(hours)
                 item.subtitle = 'Running for {0}{1}'.format(delta, total)
-                item.arg = 'stop|{0}|{1}'.format(entry.id,
-                                                 entry.description)
+                item.arg = 'stop|{0}|{1}'.format(newest_entry.id,
+                                                 effort.description)
             else:
-                seconds = entries[entry.description]['seconds']
-                hours = to_hours(datetime.timedelta(seconds=seconds))
+                seconds = effort.seconds
+                hours = to_hours_str(datetime.timedelta(seconds=seconds))
 
                 if start:
-                    item.subtitle = ('{0:.2f} hours'.format(hours))
+                    item.subtitle = ('{0} hours'.format(hours))
                 else:
-                    stop = entry.stop_time
+                    stop = newest_entry.stop_time
                     if stop:
                         delta = to_approximate_time(now - stop, ago=True)
                     else:
                         delta = 'recently'
-                    since = entries[entry.description]['first'].start_time
+                    oldest = effort.oldest_entry
+                    since = oldest.start_time
                     since = since.strftime('%m/%d')
-                    item.subtitle = ('{0:.2f} hours since {1}, '
+                    item.subtitle = ('{0} hours since {1}, '
                                      'stopped {2}'.format(hours, since, delta))
 
-                item.arg = 'continue|{0}|{1}'.format(entry.id,
-                                                     entry.description)
+                item.arg = 'continue|{0}|{1}'.format(newest_entry.id,
+                                                     effort.description)
 
             items.append(item)
 
@@ -366,18 +433,24 @@ class TogglWorkflow(Workflow):
         items.append(Item("Select an existing timer to toggle it"))
         return items
 
-    def tell_cmd(self, query):
+    def tell_commands(self, query):
         LOG.info('telling cmd with "{0}"'.format(query))
         items = []
+
         items.append(Item('Open toggl.com',
                           arg='open|https://new.toggl.com/app',
                           subtitle='Open a browser tab for toggl.com',
                           valid=True))
 
-        items.append(Item('Open the debug log',
-                          arg='open|' + self.log_file,
+        items.append(Item('Open the workflow config file',
+                          arg='open|' + self.config_file,
+                          subtitle='Change workflow options here, like the '
+                          'debug log level', valid=True))
+
+        items.append(Item('Open the debug log', arg='open|' + self.log_file,
                           subtitle='Open a browser tab for toggl.com',
                           valid=True))
+
         if self.config['use_notifier']:
             items.append(Item('Disable the menubar notifier',
                               subtitle='Exit and disable the menubar notifier',
@@ -386,6 +459,10 @@ class TogglWorkflow(Workflow):
             items.append(Item('Enable the menubar notifier',
                               subtitle='Start and enable the menubar notifier',
                               arg='enable_notifier', valid=True))
+
+        items.append(Item('Clear the cache',
+                          subtitle='Force a cache refresh on the next query',
+                          arg='force_refresh', valid=True))
 
         if 'api_key' in self.config:
             items.append(Item('Forget your API key',
@@ -453,6 +530,9 @@ class TogglWorkflow(Workflow):
             del self.config['api_key']
             self.run_script('tell application "TogglNotifier" to quit')
             self.puts('Cleared API key')
+
+        elif cmd == 'force_refresh':
+            self.cache['time_entries'] = None
 
         elif cmd == 'open':
             from subprocess import call
