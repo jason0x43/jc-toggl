@@ -98,7 +98,7 @@
 				<string>Loading...</string>
 				<key>script</key>
 				<string>from alfred_toggl import TogglWorkflow
-TogglWorkflow().tell('query', '{query}')</string>
+TogglWorkflow().tell('query', '''{query}''')</string>
 				<key>subtext</key>
 				<string>List all time entries</string>
 				<key>title</key>
@@ -171,7 +171,7 @@ TogglWorkflow().do('action', '{query}')</string>
 				<string>Loading...</string>
 				<key>script</key>
 				<string>from alfred_toggl import TogglWorkflow
-TogglWorkflow().tell('on', '{query}')</string>
+TogglWorkflow().tell('on', '''{query}''')</string>
 				<key>subtext</key>
 				<string>List time entries on a given date</string>
 				<key>title</key>
@@ -201,7 +201,7 @@ TogglWorkflow().tell('on', '{query}')</string>
 				<string>Loading...</string>
 				<key>script</key>
 				<string>from alfred_toggl import TogglWorkflow
-TogglWorkflow().tell('since', '{query}')</string>
+TogglWorkflow().tell('since', '''{query}''')</string>
 				<key>subtext</key>
 				<string>List time entries since a given date and/or time</string>
 				<key>title</key>
@@ -231,7 +231,7 @@ TogglWorkflow().tell('since', '{query}')</string>
 				<string>Preparing...</string>
 				<key>script</key>
 				<string>from alfred_toggl import TogglWorkflow
-TogglWorkflow().tell('start', '{query}')</string>
+TogglWorkflow().tell('start', '''{query}''')</string>
 				<key>subtext</key>
 				<string>Start a new time entry</string>
 				<key>title</key>
@@ -261,7 +261,7 @@ TogglWorkflow().tell('start', '{query}')</string>
 				<string>Listing commands...</string>
 				<key>script</key>
 				<string>from alfred_toggl import TogglWorkflow
-TogglWorkflow().tell('cmd', '{query}')</string>
+TogglWorkflow().tell('commands', '''{query}''')</string>
 				<key>subtext</key>
 				<string>Run a command</string>
 				<key>title</key>
@@ -291,7 +291,7 @@ TogglWorkflow().tell('cmd', '{query}')</string>
 				<string>Listing help items...</string>
 				<key>script</key>
 				<string>from alfred_toggl import TogglWorkflow
-TogglWorkflow().tell('help', '{query}')</string>
+TogglWorkflow().tell('help', '''{query}''')</string>
 				<key>subtext</key>
 				<string>Get some help</string>
 				<key>title</key>
