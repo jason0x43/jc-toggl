@@ -62,8 +62,7 @@ class TimeEntry(JsonObject):
     def all(cls):
         '''Retrieve all time entries'''
         resp = request_get('/time_entries')
-        LOG.info('response: %s', resp)
-        LOG.info('response body: %s', resp.content)
+        LOG.debug('response: %s', resp)
         return [TimeEntry(e) for e in resp.json()]
 
     @classmethod
