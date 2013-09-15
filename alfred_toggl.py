@@ -354,7 +354,7 @@ class TogglWorkflow(Workflow):
         items.append(Item("Use '//' to force a cache refresh",
                           subtitle='Data from Toggl is normally cached for '
                                    '{0} seconds'.format(CACHE_LIFETIME)))
-        items.append(Item("Use '>' to list timers started since a time",
+        items.append(Item("Use '<' to list timers started since a time",
                           subtitle='9/2, 9/2/13, 2013-9-2T22:00-04:00, ...'))
         items.append(Item("Use '@' to list time spent on a particular date",
                           subtitle='9/2, 9/2/13, 2013-9-2T22:00-04:00, ...'))
