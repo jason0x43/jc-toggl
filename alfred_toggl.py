@@ -40,7 +40,7 @@ COMMANDS = {
 }
 
 
-def to_hours_str(delta, quantized=True, precision=2, show_suffix=True):
+def to_hours_str(delta, quantized=True, precision=2, show_suffix=False):
     '''Convert a timedelta or number of seconds to an hour string.'''
     if isinstance(delta, datetime.timedelta):
         hours = delta.days * 24
@@ -307,7 +307,7 @@ class TogglWorkflow(Workflow):
             if len(efforts) > 0:
                 seconds = sum(e.seconds for e in efforts)
                 LOG.debug('total seconds: %s', seconds)
-                total_time = to_hours_str(seconds, show_suffix=False)
+                total_time = to_hours_str(seconds)
 
                 if end:
                     item = Item('{0} hours on {1}'.format(
@@ -324,6 +324,8 @@ class TogglWorkflow(Workflow):
 
             items.append(item)
 
+        show_suffix = start or end
+
         for effort in efforts:
             item = Item(effort.description, valid=True)
             now = LOCALTZ.localize(datetime.datetime.now())
@@ -337,14 +339,15 @@ class TogglWorkflow(Workflow):
                 seconds = effort.seconds
                 total = ''
                 if seconds > 0:
-                    hours = to_hours_str(seconds)
+                    hours = to_hours_str(seconds, show_suffix=show_suffix)
                     total = ' ({0} hours total)'.format(hours)
                 item.subtitle = 'Running for {0}{1}'.format(delta, total)
                 item.arg = 'stop|{0}|{1}'.format(newest_entry.id,
                                                  effort.description)
             else:
                 seconds = effort.seconds
-                hours = to_hours_str(datetime.timedelta(seconds=seconds))
+                hours = to_hours_str(datetime.timedelta(seconds=seconds),
+                                     show_suffix=show_suffix)
 
                 if start:
                     item.subtitle = ('{0} hours'.format(hours))
