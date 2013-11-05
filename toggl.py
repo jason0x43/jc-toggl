@@ -11,27 +11,38 @@ LOCALTZ = get_localzone()
 LOG = logging.getLogger(__name__)
 
 api_key = None
+workspace_id = 425197
 
 
-def request_get(path, params=None):
+def api_get(path, params=None):
     url = TOGGL_API + path
     return requests.get(url, auth=(api_key, 'api_token'), params=params,
                         headers={'content-type': 'application/json'})
 
 
-def request_post(path, data=None):
+def report_get(path, params=None):
+    url = REPORTS_API + path
+    if not params:
+        params = {}
+    params['user_agent'] = 'jc-toggl'
+    params['workspace_id'] = workspace_id
+    return requests.get(url, auth=(api_key, 'api_token'), params=params,
+                        headers={'content-type': 'application/json'})
+
+
+def api_post(path, data=None):
     url = TOGGL_API + path
     return requests.post(url, auth=(api_key, 'api_token'), data=data,
                          headers={'content-type': 'application/json'})
 
 
-def request_put(path, data=None):
+def api_put(path, data=None):
     url = TOGGL_API + path
     return requests.put(url, auth=(api_key, 'api_token'), data=data,
                         headers={'content-type': 'application/json'})
 
 
-def request_delete(path):
+def api_delete(path):
     url = TOGGL_API + path
     return requests.put(url, auth=(api_key, 'api_token'),
                         headers={'content-type': 'application/json'})
@@ -61,14 +72,16 @@ class TimeEntry(JsonObject):
     @classmethod
     def all(cls):
         '''Retrieve all time entries'''
-        resp = request_get('/time_entries')
+        resp = api_get('/time_entries')
+        #resp = report_get('/details')
+        #print json.dumps(resp.json(), indent=2)
         LOG.debug('response: %s', resp)
         return [TimeEntry(e) for e in resp.json()]
 
     @classmethod
     def retrieve(cls, id):
         '''Retrieve a specific time entry'''
-        resp = request_get('/time_entries/{0}'.format(id))
+        resp = api_get('/time_entries/{0}'.format(id))
         return TimeEntry(resp.json()['data'])
 
     @classmethod
@@ -78,7 +91,7 @@ class TimeEntry(JsonObject):
         if project_id:
             data['time_entry']['pid'] = project_id
         data = json.dumps(data)
-        resp = request_post('/time_entries/start', data=data)
+        resp = api_post('/time_entries/start', data=data)
         if resp.status_code != 200:
             raise Exception('Unable to start timer: {0}'.format(resp))
         return TimeEntry(resp.json()['data'])
@@ -86,7 +99,7 @@ class TimeEntry(JsonObject):
     @classmethod
     def stop(cls, id):
         '''Stop a the time entry with the given id'''
-        resp = request_put('/time_entries/{0}/stop'.format(id))
+        resp = api_put('/time_entries/{0}/stop'.format(id))
         return resp.json()['data']
 
     @property
@@ -152,7 +165,7 @@ class Project(JsonObject):
     @classmethod
     def retrieve(cls, id):
         '''Retrieve a specific project'''
-        resp = request_get('/projects/{0}'.format(id))
+        resp = api_get('/projects/{0}'.format(id))
         return Project(resp.json()['data'])
 
     @property
@@ -178,13 +191,13 @@ class Workspace(JsonObject):
     @classmethod
     def all(cls):
         '''Retrieve all user workspaces'''
-        resp = request_get('/workspaces')
+        resp = api_get('/workspaces')
         return [Workspace(w) for w in resp.json()]
 
     @classmethod
     def retrieve(cls, id):
         '''Retrieve a specific workspace'''
-        resp = request_get('/workspaces/{0}'.format(id))
+        resp = api_get('/workspaces/{0}'.format(id))
         return Workspace(resp.json()['data'])
 
     @property
@@ -202,7 +215,7 @@ class Workspace(JsonObject):
     @property
     def projects(self):
         '''Return all workspace projects'''
-        resp = request_get('/workspaces/{0}/projects'.format(self.id))
+        resp = api_get('/workspaces/{0}/projects'.format(self.id))
         return [Project(p) for p in resp.json()]
 
     def get_report(self, kind='weekly', since=None, until=None,
@@ -235,8 +248,7 @@ class Workspace(JsonObject):
         if description:
             data['description'] = description
 
-        resp = self.session.get('{0}/{1}'.format(REPORTS_API, kind),
-                                params=data)
+        resp = report_get('{0}/{1}'.format(REPORTS_API, kind), params=data)
         return resp.json()
 
     def __str__(self):
@@ -250,7 +262,7 @@ class Workspace(JsonObject):
 class Account(JsonObject):
     @classmethod
     def retrieve(cls):
-        resp = request_get('/me')
+        resp = api_get('/me')
         Account(resp.json()['data'])
 
     @property
@@ -269,4 +281,9 @@ class Account(JsonObject):
         return self._get_value('timezone')
 
 if __name__ == '__main__':
-    print TimeEntry.all()
+    from sys import argv
+    api_key = argv[1]
+    workspace = Workspace.all()[0]
+    workspace_id = workspace.id
+    #print TimeEntry.all()
+    TimeEntry.all()

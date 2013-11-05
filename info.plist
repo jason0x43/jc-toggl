@@ -166,7 +166,7 @@ TogglWorkflow().do('action', '{query}')</string>
 				<key>escaping</key>
 				<integer>0</integer>
 				<key>keyword</key>
-				<string>toggl@</string>
+				<string>toggl#</string>
 				<key>runningsubtext</key>
 				<string>Loading...</string>
 				<key>script</key>
@@ -175,7 +175,7 @@ TogglWorkflow().tell('on', '''{query}''')</string>
 				<key>subtext</key>
 				<string>List time entries on a given date</string>
 				<key>title</key>
-				<string>toggl@</string>
+				<string>toggl#</string>
 				<key>type</key>
 				<integer>3</integer>
 				<key>withspace</key>

@@ -40,35 +40,18 @@ COMMANDS = {
 }
 
 
-def to_hours_str(delta, quantized=True, precision=2, show_suffix=False):
-    '''Convert a timedelta or number of seconds to an hour string.'''
+def to_hours(delta):
     if isinstance(delta, datetime.timedelta):
         hours = delta.days * 24
         hours += delta.seconds / (60 * 60.0)
     else:
         hours = delta / (60*60.0)
 
-    suffix = ''
-
-    if quantized:
-        # round to nearest quarter hour
-        exact_hours = hours
-        hours = round(hours * 4) / 4
-        if hours == 0:
-            hours = 0.25
-        if show_suffix:
-            if exact_hours < hours:
-                suffix = '-'
-            elif exact_hours > hours:
-                suffix = '+'
-
-    hours_format = '{{0:.0{0}f}}'.format(precision)
-    hours_str = hours_format.format(hours)
-    if precision > 0:
-        hours_str = hours_str.rstrip('0').rstrip('.')
-    hours_str += suffix
-
-    return hours_str
+    # round to nearest quarter hour
+    exact_hours = hours
+    from math import ceil
+    hours = ceil(hours * 4) / 4
+    return hours, exact_hours
 
 
 def to_approximate_time(delta, ago=False):
@@ -175,6 +158,9 @@ class Effort(object):
         self.start_time = start_time
         self.end_time = end_time
 
+    def __str__(self):
+        return self.description
+
     def add(self, time_entry):
         if time_entry.description != self.description:
             raise Exception('Entry description does not match this effort')
@@ -190,6 +176,9 @@ class Effort(object):
                 duration -= (time_entry.stop_time - self.end_time -
                              sec).total_seconds()
             self.seconds += int(duration)
+        else:
+            now = LOCALTZ.localize(datetime.datetime.now())
+            self.seconds += int((now - time_entry.start_time).total_seconds())
 
     @property
     def newest_entry(self):
@@ -305,9 +294,9 @@ class TogglWorkflow(Workflow):
 
         if start:
             if len(efforts) > 0:
-                seconds = sum(e.seconds for e in efforts)
-                LOG.debug('total seconds: %s', seconds)
-                total_time = to_hours_str(seconds)
+                hours = sum(to_hours(e.seconds)[0] for e in efforts)
+                LOG.debug('total hours: %s', hours)
+                total_time = "{0}".format(hours)
 
                 if end:
                     item = Item('{0} hours on {1}'.format(
@@ -324,8 +313,6 @@ class TogglWorkflow(Workflow):
 
             items.append(item)
 
-        show_suffix = start or end
-
         for effort in efforts:
             item = Item(effort.description, valid=True)
             now = LOCALTZ.localize(datetime.datetime.now())
@@ -337,31 +324,28 @@ class TogglWorkflow(Workflow):
                 delta = to_approximate_time(now - started)
 
                 seconds = effort.seconds
+                LOG.debug('total seconds for {0}: {1}'.format(effort, seconds))
                 total = ''
                 if seconds > 0:
-                    hours = to_hours_str(seconds, show_suffix=show_suffix)
-                    total = ' ({0} hours total)'.format(hours)
+                    hours, exact_hours = to_hours(seconds)
+                    total = ' ({0} ({1:.2f}) hours total)'.format(hours,
+                                                                  exact_hours)
                 item.subtitle = 'Running for {0}{1}'.format(delta, total)
                 item.arg = 'stop|{0}|{1}'.format(newest_entry.id,
                                                  effort.description)
             else:
                 seconds = effort.seconds
-                hours = to_hours_str(datetime.timedelta(seconds=seconds),
-                                     show_suffix=show_suffix)
+                hours, exact_hours = to_hours(seconds)
 
                 if start:
-                    item.subtitle = ('{0} hours'.format(hours))
+                    item.subtitle = ('{0} ({1:.2f}) hours'.format(hours,
+                                     exact_hours))
                 else:
-                    stop = newest_entry.stop_time
-                    if stop:
-                        delta = to_approximate_time(now - stop, ago=True)
-                    else:
-                        delta = 'recently'
                     oldest = effort.oldest_entry
                     since = oldest.start_time
                     since = since.strftime('%m/%d')
-                    item.subtitle = ('{0} hours since {1}, '
-                                     'stopped {2}'.format(hours, since, delta))
+                    item.subtitle = ('{0} ({1:.2f}) hours since {2}'.format(
+                                     hours, exact_hours, since))
 
                 item.arg = 'continue|{0}|{1}'.format(newest_entry.id,
                                                      effort.description)
@@ -407,12 +391,13 @@ class TogglWorkflow(Workflow):
         return self.tell_query('', start=get_start(query), end=get_end(query))
 
     def tell_start(self, query):
-        LOG.info('adding a new time entry...')
+        LOG.info('tell_start(%s)', query)
         items = []
         desc = query.strip()
         if desc:
             items.append(Item('Creating timer "{0}"...'.format(desc),
                               arg='start|' + desc, valid=True))
+            LOG.debug('created item %s', items[-1])
         else:
             items.append(Item('Waiting for description...'))
         return items
@@ -441,7 +426,8 @@ class TogglWorkflow(Workflow):
         items = []
 
         items.append(Item('Open toggl.com',
-                          arg='open|https://new.toggl.com/app',
+                          #arg='open|https://new.toggl.com/app',
+                          arg='open|https://www.toggl.com',
                           subtitle='Open a browser tab for toggl.com',
                           valid=True))
 
@@ -482,7 +468,7 @@ class TogglWorkflow(Workflow):
         return items
 
     def do_action(self, query):
-        LOG.info('doing action with %s', query)
+        LOG.info('do_action(%s)', query)
         cmd, sep, arg = query.partition('|')
 
         if cmd == 'start':
@@ -547,3 +533,9 @@ class TogglWorkflow(Workflow):
     def schedule_refresh(self):
         '''Force a refresh next time Toggl is queried'''
         self.cache['time'] = 0
+
+
+if __name__ == '__main__':
+    from sys import argv
+    wf = TogglWorkflow()
+    getattr(wf, argv[1])(*argv[2:])
