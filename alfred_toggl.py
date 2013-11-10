@@ -415,6 +415,10 @@ class TogglWorkflow(Workflow):
             items.append(Item('Waiting for description...'))
         return items
 
+    def tell_stop_current(self, query):
+        LOG.info('stopping the current timer...')
+        return [Item('Stop the current timer', arg='stop_current', valid=True)]
+
     def tell_help(self, query):
         items = []
         items.append(Item("Use '/' to list existing timers",
@@ -428,6 +432,7 @@ class TogglWorkflow(Workflow):
                           subtitle='9/2, 9/2/13, 2013-9-2T22:00-04:00, ...'))
         items.append(Item("Use '+' to start a new timer",
                           subtitle="Type a description after the '+'"))
+        items.append(Item("Use '.' to stop the current timer"))
         items.append(Item("Use '>' to access other commands",
                           subtitle='Enable menubar icon, go to toggl.com, '
                                    '...'))
@@ -514,6 +519,11 @@ class TogglWorkflow(Workflow):
                                 'stopped')
 
             self.puts('Stopped {0}'.format(desc))
+
+        elif cmd == 'stop_current':
+            for item in self.tell_query(''):
+                if item.arg.startswith('stop'):
+                    self.do_action(item.arg)
 
         elif cmd == 'enable_notifier':
             self.config['use_notifier'] = True
