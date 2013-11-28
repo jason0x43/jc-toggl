@@ -121,8 +121,12 @@ def get_start(query):
 
 
 def get_end(query):
-    if query in ('today', 'this week'):
-        end = datetime.datetime.now()
+    if query == 'today':
+        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+        end = datetime.datetime.combine(
+            datetime.datetime(tomorrow.year, tomorrow.month, tomorrow.day),
+            datetime.time.min
+        )
 
     elif query == 'yesterday':
         today = datetime.date.today()
@@ -143,7 +147,12 @@ def get_end(query):
         else:
             end = parse(query)
             if end == today:
-                end = datetime.datetime.now()
+                tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+                end = datetime.datetime.combine(
+                    datetime.datetime(tomorrow.year, tomorrow.month,
+                                      tomorrow.day),
+                    datetime.time.min
+                )
             else:
                 end += datetime.timedelta(days=1)
 
@@ -159,7 +168,12 @@ class Effort(object):
         self.end_time = end_time
 
     def __str__(self):
-        return self.description
+        return ('{{Effort: description={0}, start={1}, end={2}, '
+                'seconds={3}}}'.format(self.description, self.start_time,
+                self.end_time, self.seconds))
+
+    def __repr__(self):
+        return self.__str__()
 
     def add(self, time_entry):
         if time_entry.description != self.description:
@@ -274,7 +288,6 @@ class TogglWorkflow(Workflow):
                                and e.stop_time > start]
             else:
                 all_entries = [e for e in all_entries if e.stop_time > start]
-            LOG.debug('filtered to %d entries', len(all_entries))
 
         efforts = {}
 
@@ -426,8 +439,7 @@ class TogglWorkflow(Workflow):
         items = []
 
         items.append(Item('Open toggl.com',
-                          #arg='open|https://new.toggl.com/app',
-                          arg='open|https://www.toggl.com',
+                          arg='open|https://new.toggl.com/app',
                           subtitle='Open a browser tab for toggl.com',
                           valid=True))
 
