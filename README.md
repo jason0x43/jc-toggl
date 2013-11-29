@@ -30,12 +30,13 @@ There are a number of commands:
 * `toggl/` - List your time entries in descending order by last stop time. Only
   entries for the past 9 days are included. Entries with the same description are
   collapsed into a single Alfred item.
-* `toggl@` - List time entries on a specific date. This can be a date like
+* `toggl#` - List time entries on a specific date. This can be a date like
   8/24, "today", "yesterday", or a weekday name.
 * `toggl<` - List time entries from a specific date or date+time until the
   current time.
 * `toggl+` - Create an entry with a description.
 * `toggl>` - List miscellaneous commands, like opening toggl.com.
+* `toggl.` - Quickly stop the currently active timer
 * `toggl?` - Get help
 
 When you run the workflow for the first time you will need to input your Toggl
