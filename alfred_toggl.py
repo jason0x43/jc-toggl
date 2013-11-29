@@ -360,8 +360,8 @@ class TogglWorkflow(Workflow):
                     item.subtitle = ('{0} ({1:.2f}) hours since {2}'.format(
                                      hours, exact_hours, since))
 
-                item.arg = 'continue|{0}|{1}'.format(newest_entry.id,
-                                                     effort.description)
+                pid = newest_entry.pid or ''
+                item.arg = 'continue|{0}|{1}'.format(pid, effort.description)
 
             items.append(item)
 
@@ -495,8 +495,8 @@ class TogglWorkflow(Workflow):
             self.puts('Started {0}'.format(arg))
 
         elif cmd == 'continue':
-            tid, sep, desc = arg.partition('|')
-            entry = toggl.TimeEntry.start(desc)
+            pid, sep, desc = arg.partition('|')
+            entry = toggl.TimeEntry.start(desc, pid)
             self.schedule_refresh()
 
             if self.config['use_notifier']:

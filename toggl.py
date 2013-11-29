@@ -91,6 +91,7 @@ class TimeEntry(JsonObject):
         if project_id:
             data['time_entry']['pid'] = project_id
         data = json.dumps(data)
+        LOG.debug('starting entry with {0}'.format(data))
         resp = api_post('/time_entries/start', data=data)
         if resp.status_code != 200:
             raise Exception('Unable to start timer: {0}'.format(resp))
