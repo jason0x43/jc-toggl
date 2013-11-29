@@ -97,8 +97,17 @@ class TimeEntry(JsonObject):
         return TimeEntry(resp.json()['data'])
 
     @classmethod
-    def stop(cls, id):
+    def stop(cls, id=None):
         '''Stop a the time entry with the given id'''
+        if not id:
+            entries = cls.all()
+            for entry in entries:
+                if entry.is_running:
+                    id = entry.id
+                    LOG.debug('running entry is {0}'.format(entry))
+                    break
+        if not id:
+            return None
         resp = api_put('/time_entries/{0}/stop'.format(id))
         return resp.json()['data']
 

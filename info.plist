@@ -28,19 +28,19 @@
 				<string></string>
 			</dict>
 		</array>
-		<key>57249A1E-930C-46BD-BA7D-C8D407325D83</key>
-		<array/>
-		<key>5F45CEA6-B3F6-4D5A-977A-2B7BC7CC1896</key>
+		<key>4D0C2241-1DCB-47C6-81ED-D5F5976F1BD5</key>
 		<array>
 			<dict>
 				<key>destinationuid</key>
-				<string>0DEC9E1D-EA0D-434E-BA5C-AF9ACCE1B3E2</string>
+				<string>96FA3736-3D14-40A5-B4B0-6027FEAF4DF4</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
 				<string></string>
 			</dict>
 		</array>
+		<key>57249A1E-930C-46BD-BA7D-C8D407325D83</key>
+		<array/>
 		<key>8602447A-18F0-4C03-8364-F6DD5FAEA325</key>
 		<array>
 			<dict>
@@ -57,6 +57,17 @@
 			<dict>
 				<key>destinationuid</key>
 				<string>0DEC9E1D-EA0D-434E-BA5C-AF9ACCE1B3E2</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+			</dict>
+		</array>
+		<key>96FA3736-3D14-40A5-B4B0-6027FEAF4DF4</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>0647B0B4-6734-48A1-BF61-031D41D2A35D</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -262,6 +273,24 @@ TogglWorkflow().tell('since', '''{query}''')</string>
 		<dict>
 			<key>config</key>
 			<dict>
+				<key>escaping</key>
+				<integer>0</integer>
+				<key>script</key>
+				<string>from alfred_toggl import TogglWorkflow
+TogglWorkflow().do('action', 'stop_current')</string>
+				<key>type</key>
+				<integer>3</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>96FA3736-3D14-40A5-B4B0-6027FEAF4DF4</string>
+			<key>version</key>
+			<integer>0</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
 				<key>argumenttype</key>
 				<integer>1</integer>
 				<key>keyword</key>
@@ -283,26 +312,17 @@ TogglWorkflow().tell('since', '''{query}''')</string>
 			<dict>
 				<key>argumenttype</key>
 				<integer>2</integer>
-				<key>escaping</key>
-				<integer>0</integer>
 				<key>keyword</key>
 				<string>toggl.</string>
-				<key>script</key>
-				<string>from alfred_toggl import TogglWorkflow
-TogglWorkflow().tell('stop_current', '''{query}''')</string>
-				<key>subtext</key>
-				<string>Stop the current timer</string>
-				<key>title</key>
-				<string>toggl.</string>
-				<key>type</key>
-				<integer>3</integer>
+				<key>text</key>
+				<string>Stop the active timer</string>
 				<key>withspace</key>
 				<false/>
 			</dict>
 			<key>type</key>
-			<string>alfred.workflow.input.scriptfilter</string>
+			<string>alfred.workflow.input.keyword</string>
 			<key>uid</key>
-			<string>5F45CEA6-B3F6-4D5A-977A-2B7BC7CC1896</string>
+			<string>4D0C2241-1DCB-47C6-81ED-D5F5976F1BD5</string>
 			<key>version</key>
 			<integer>0</integer>
 		</dict>
@@ -386,15 +406,15 @@ TogglWorkflow().tell('help', '''{query}''')</string>
 			<key>ypos</key>
 			<real>250</real>
 		</dict>
+		<key>4D0C2241-1DCB-47C6-81ED-D5F5976F1BD5</key>
+		<dict>
+			<key>ypos</key>
+			<real>490</real>
+		</dict>
 		<key>57249A1E-930C-46BD-BA7D-C8D407325D83</key>
 		<dict>
 			<key>ypos</key>
 			<real>730</real>
-		</dict>
-		<key>5F45CEA6-B3F6-4D5A-977A-2B7BC7CC1896</key>
-		<dict>
-			<key>ypos</key>
-			<real>490</real>
 		</dict>
 		<key>8602447A-18F0-4C03-8364-F6DD5FAEA325</key>
 		<dict>
@@ -410,6 +430,11 @@ TogglWorkflow().tell('help', '''{query}''')</string>
 		<dict>
 			<key>ypos</key>
 			<real>370</real>
+		</dict>
+		<key>96FA3736-3D14-40A5-B4B0-6027FEAF4DF4</key>
+		<dict>
+			<key>ypos</key>
+			<real>250</real>
 		</dict>
 		<key>98D9C78B-FE32-4341-8D7D-28C97054A198</key>
 		<dict>
